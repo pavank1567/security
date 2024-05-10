@@ -1,8 +1,10 @@
 package com.example.demo.security;
 
+import com.example.demo.auth.ApplicationUserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -22,9 +24,11 @@ import static com.example.demo.security.ApplicationUserRole.*;
 public class ApplicationSecurityConfig{
 
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationUserService applicationUserService;
 
-    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder) {
+    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder, ApplicationUserService applicationUserService) {
         this.passwordEncoder = passwordEncoder;
+        this.applicationUserService = applicationUserService;
     }
 
     @Bean
@@ -33,8 +37,8 @@ public class ApplicationSecurityConfig{
 //                .csrf((csrf)-> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authz) -> authz
-                        .requestMatchers(HttpMethod.GET, "/*").permitAll()
-                        .requestMatchers("/api/students/**").hasRole(STUDENT.name())
+                        .requestMatchers(HttpMethod.GET, "/login").permitAll()
+                        .requestMatchers("/api/v1/students/**").hasRole(STUDENT.name())
                         .requestMatchers(HttpMethod.POST, "/api/manage/**").hasAuthority(STUDENT_WRITE.getPermission())
                         .requestMatchers(HttpMethod.GET,"/api/manage/**").hasAnyRole(ApplicationUserRole.ADMIN_TRAINEE.name(), ADMIN.name())
                         .anyRequest()
@@ -58,6 +62,16 @@ public class ApplicationSecurityConfig{
     }
 
     @Bean
+    public DaoAuthenticationProvider daoAuthenticationProvider(){
+
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setPasswordEncoder(passwordEncoder);
+        provider.setUserDetailsService(applicationUserService);
+        return provider;
+    }
+
+
+  /*  @Bean
     protected InMemoryUserDetailsManager userDetailsService(){
         UserDetails admin = User.builder()
                 .username("admin")
@@ -84,5 +98,5 @@ public class ApplicationSecurityConfig{
                 adminTrainee
         );
 
-    }
+    }*/
 }
